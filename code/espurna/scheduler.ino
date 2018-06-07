@@ -29,6 +29,9 @@ void createScheduleArray(JsonArray &sch){
         scheduler["schType"] = getSetting("schType", i, 0).toInt();
         scheduler["schHour"] = getSetting("schHour", i, 0).toInt();
         scheduler["schMinute"] = getSetting("schMinute", i, 0).toInt();
+        scheduler["schEndHour"] = getSetting("schEndHour", i, 0).toInt();
+        scheduler["schEndMinute"] = getSetting("schEndMinute", i, 0).toInt();
+        scheduler["schDuration"] = getSetting("schDuration", i, 0).toInt();
         scheduler["schUTC"] = getSetting("schUTC", i, 0).toInt() == 1;
         scheduler["schWDs"] = getSetting("schWDs", i, "");
     }
@@ -68,6 +71,9 @@ void _schConfigure() {
             delSetting("schHour", i);
             delSetting("schMinute", i);
             delSetting("schWDs", i);
+            delSetting("schEndHour", i);
+            delSetting("schEndMinute", i);
+            delSetting("schDuration", i);
             delSetting("schType", i);
             delSetting("schUTC", i);
 
@@ -80,13 +86,16 @@ void _schConfigure() {
                 int sch_hour = getSetting("schHour", i, 0).toInt();
                 int sch_minute = getSetting("schMinute", i, 0).toInt();
                 bool sch_utc = getSetting("schUTC", i, 0).toInt() == 1;
+                int sch_end_hour = getSetting("schEndHour", i, 0).toInt();
+                int sch_end_minute = getSetting("schEndMinute", i, 0).toInt();
+                int sch_duration = getSetting("schDuration", i, 0).toInt();
                 String sch_weekdays = getSetting("schWDs", i, "");
                 unsigned char sch_type = getSetting("schType", i, SCHEDULER_TYPE_SWITCH).toInt();
 
                 DEBUG_MSG_P(
-                    PSTR("[SCH] Schedule #%d: %s #%d to %d at %02d:%02d %s on %s%s\n"),
+                    PSTR("[SCH] Schedule #%d: %s #%d to %d from %02d:%02d %s to %02d:%02d during %dh on %s%s\n"),
                     i, SCHEDULER_TYPE_SWITCH == sch_type ? "switch" : "channel", sch_switch,
-                    sch_action, sch_hour, sch_minute, sch_utc ? "UTC" : "local time",
+                    sch_action, sch_hour, sch_minute, sch_end_hour, sch_end_minute, sch_duration, sch_utc ? "UTC" : "local time",
                     (char *) sch_weekdays.c_str(),
                     sch_enabled ? "" : " (disabled)"
                 );
@@ -248,6 +257,9 @@ void schedulerMQTTCallback(unsigned int type, const char * topic, const char * p
                 int schAction = sch["schAction"];
                 int schHour = sch["schHour"];
                 int schMinute = sch["schMinute"];
+                int schEndHour = sch["schEndHour"];
+                int schEndMinute = sch["schEndMinute"];
+                int schDuration = sch["schDuration"];
                 bool schUTC = sch["schUTC"];
                 String schWDs = sch["schWDs"];
                 unsigned char schType = sch["schType"];
@@ -257,6 +269,9 @@ void schedulerMQTTCallback(unsigned int type, const char * topic, const char * p
                 setSetting("schAction", index, schAction);
                 setSetting("schHour", index, schHour);
                 setSetting("schMinute", index, schMinute);
+                setSetting("schEndHour", index, schEndHour);
+                setSetting("schEndMinute", index, schEndMinute);
+                setSetting("schDuration", index, schDuration);
                 setSetting("schUTC", index, schUTC);
                 setSetting("schWDs", index, schWDs);
                 setSetting("schType", index, schType);
