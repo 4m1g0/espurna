@@ -19,6 +19,21 @@ bool _schWebSocketOnReceive(const char * key, JsonVariant& value) {
     return (strncmp(key, "sch", 3) == 0);
 }
 
+void createScheduleArray(JsonArray &sch){
+    for (byte i = 0; i < SCHEDULER_MAX_SCHEDULES; i++) {
+        if (!hasSetting("schSwitch", i)) break;
+        JsonObject &scheduler = sch.createNestedObject();
+        scheduler["schEnabled"] = getSetting("schEnabled", i, 1).toInt() == 1;
+        scheduler["schSwitch"] = getSetting("schSwitch", i, 0).toInt();
+        scheduler["schAction"] = getSetting("schAction", i, 0).toInt();
+        scheduler["schType"] = getSetting("schType", i, 0).toInt();
+        scheduler["schHour"] = getSetting("schHour", i, 0).toInt();
+        scheduler["schMinute"] = getSetting("schMinute", i, 0).toInt();
+        scheduler["schUTC"] = getSetting("schUTC", i, 0).toInt() == 1;
+        scheduler["schWDs"] = getSetting("schWDs", i, "");
+    }
+}
+
 void _schWebSocketOnSend(JsonObject &root){
 
     if (relayCount() > 0) {
@@ -26,18 +41,7 @@ void _schWebSocketOnSend(JsonObject &root){
         root["schVisible"] = 1;
         root["maxSchedules"] = SCHEDULER_MAX_SCHEDULES;
         JsonArray &sch = root.createNestedArray("schedule");
-        for (byte i = 0; i < SCHEDULER_MAX_SCHEDULES; i++) {
-            if (!hasSetting("schSwitch", i)) break;
-            JsonObject &scheduler = sch.createNestedObject();
-            scheduler["schEnabled"] = getSetting("schEnabled", i, 1).toInt() == 1;
-            scheduler["schSwitch"] = getSetting("schSwitch", i, 0).toInt();
-            scheduler["schAction"] = getSetting("schAction", i, 0).toInt();
-            scheduler["schType"] = getSetting("schType", i, 0).toInt();
-            scheduler["schHour"] = getSetting("schHour", i, 0).toInt();
-            scheduler["schMinute"] = getSetting("schMinute", i, 0).toInt();
-            scheduler["schUTC"] = getSetting("schUTC", i, 0).toInt() == 1;
-            scheduler["schWDs"] = getSetting("schWDs", i, "");
-        }
+        createScheduleArray(sch);
 
     }
 
@@ -191,6 +195,39 @@ void _schCheck() {
 
 }
 
+void schedulerMQTT() {
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    JsonArray& sch = root.createNestedArray("schedules");
+    createScheduleArray(sch);
+
+    String output;
+    root.printTo(output);
+    mqttSend(MQTT_TOPIC_SCHEDULER, output.c_str());
+}
+
+void schedulerMQTTCallback(unsigned int type, const char * topic, const char * payload) {
+
+    if (type == MQTT_CONNECT_EVENT) {
+
+        // Send status on connect
+        #if not HEARTBEAT_REPORT_SCHEDULER
+            schedulerMQTT();
+        #endif
+    }
+
+    if (type == MQTT_MESSAGE_EVENT) {
+        // TODO
+    }
+
+}
+
+void schedulerSetupMQTT() {
+    mqttRegister(schedulerMQTTCallback);
+}
+
+
+
 void _schLoop() {
 
     // Check time has been sync'ed
@@ -218,6 +255,10 @@ void schSetup() {
         wsOnReceiveRegister(_schWebSocketOnReceive);
         wsOnAfterParseRegister(_schConfigure);
     #endif
+    #if MQTT_SUPPORT
+        schedulerSetupMQTT();
+    #endif
+
 
     // Register loop
     espurnaRegisterLoop(_schLoop);

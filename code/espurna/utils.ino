@@ -188,6 +188,9 @@ void heartbeat() {
             #if (HEARTBEAT_REPORT_STATUS)
                 mqttSend(MQTT_TOPIC_STATUS, MQTT_STATUS_ONLINE, true);
             #endif
+            #if (HEARTBEAT_REPORT_SCHEDULER)
+                schedulerMQTT();
+            #endif
             #if (LOADAVG_REPORT)
                 mqttSend(MQTT_TOPIC_LOADAVG, String(systemLoadAverage()).c_str());
             #endif

@@ -179,6 +179,7 @@
 #define HEARTBEAT_REPORT_VERSION    1
 #define HEARTBEAT_REPORT_BOARD      1
 #define HEARTBEAT_REPORT_INTERVAL   0
+#define HEARTBEAT_REPORT_SCHEDULER  1
 
 //------------------------------------------------------------------------------
 // Load average
@@ -658,6 +659,7 @@
 #define MQTT_TOPIC_JSON             "data"
 #define MQTT_TOPIC_ACTION           "action"
 #define MQTT_TOPIC_RELAY            "relay"
+#define MQTT_TOPIC_SCHEDULER        "scheduler"
 #define MQTT_TOPIC_LED              "led"
 #define MQTT_TOPIC_BUTTON           "button"
 #define MQTT_TOPIC_IP               "ip"
