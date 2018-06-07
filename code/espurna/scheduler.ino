@@ -97,6 +97,7 @@ void _schConfigure() {
 
     }
 
+    schedulerMQTT();
 }
 
 bool _schIsThisWeekday(time_t t, String weekdays){
@@ -214,10 +215,61 @@ void schedulerMQTTCallback(unsigned int type, const char * topic, const char * p
         #if not HEARTBEAT_REPORT_SCHEDULER
             schedulerMQTT();
         #endif
+
+        // Subscribe to own /set topic
+        char buffer[strlen(MQTT_TOPIC_SCHEDULER) + 3];
+        snprintf_P(buffer, sizeof(buffer), PSTR("%s/+"), MQTT_TOPIC_SCHEDULER);
+        mqttSubscribe(buffer);
     }
 
     if (type == MQTT_MESSAGE_EVENT) {
-        // TODO
+         // Check scheduler topic
+        String t = mqttMagnitude((char *) topic);
+        if (t.startsWith(MQTT_TOPIC_SCHEDULER)) {
+            DEBUG_MSG_P(PSTR("[SCH] Received MQTT package\n"));
+            // Parse response
+            DynamicJsonBuffer jsonBuffer;
+            JsonObject& root = jsonBuffer.parseObject((char *) payload);
+
+            if (!root.success()) {
+                DEBUG_MSG_P(PSTR("[SCH] Error parsing MQTT data\n"));
+                return;
+            }
+
+            JsonArray& schedules = root["schedules"];
+
+            if (!schedules.success())
+                return;
+
+            int index = 0;
+            for (auto& sch : schedules) {
+                bool schEnabled = sch["schEnabled"];
+                int schSwitch = sch["schSwitch"];
+                int schAction = sch["schAction"];
+                int schHour = sch["schHour"];
+                int schMinute = sch["schMinute"];
+                bool schUTC = sch["schUTC"];
+                String schWDs = sch["schWDs"];
+                unsigned char schType = sch["schType"];
+
+                setSetting("schEnabled", index, schEnabled);
+                setSetting("schSwitch", index, schSwitch);
+                setSetting("schAction", index, schAction);
+                setSetting("schHour", index, schHour);
+                setSetting("schMinute", index, schMinute);
+                setSetting("schUTC", index, schUTC);
+                setSetting("schWDs", index, schWDs);
+                setSetting("schType", index, schType);
+
+                index++;
+                if (index >= SCHEDULER_MAX_SCHEDULES) {
+                    DEBUG_MSG_P(PSTR("[SCH] Exceeded the max number of schedules\n"));
+                    break;
+                }
+            }
+
+            _schConfigure();
+        }
     }
 
 }
