@@ -219,7 +219,6 @@ void schedulerMQTT() {
 void schedulerMQTTCallback(unsigned int type, const char * topic, const char * payload) {
 
     if (type == MQTT_CONNECT_EVENT) {
-
         // Send status on connect
         #if not HEARTBEAT_REPORT_SCHEDULER
             schedulerMQTT();
@@ -229,13 +228,16 @@ void schedulerMQTTCallback(unsigned int type, const char * topic, const char * p
         char buffer[strlen(MQTT_TOPIC_SCHEDULER) + 3];
         snprintf_P(buffer, sizeof(buffer), PSTR("%s/+"), MQTT_TOPIC_SCHEDULER);
         mqttSubscribe(buffer);
+
+        // Subscribe to /prices topic
+        mqttSubscribe(MQTT_TOPIC_PRICES);
     }
 
     if (type == MQTT_MESSAGE_EVENT) {
          // Check scheduler topic
         String t = mqttMagnitude((char *) topic);
         if (t.startsWith(MQTT_TOPIC_SCHEDULER)) {
-            DEBUG_MSG_P(PSTR("[SCH] Received MQTT package\n"));
+            DEBUG_MSG_P(PSTR("[SCH] Received MQTT scheduler package\n"));
             // Parse response
             DynamicJsonBuffer jsonBuffer;
             JsonObject& root = jsonBuffer.parseObject((char *) payload);
@@ -284,6 +286,26 @@ void schedulerMQTTCallback(unsigned int type, const char * topic, const char * p
             }
 
             _schConfigure();
+        }
+
+
+        if (t.startsWith(MQTT_TOPIC_PRICES)) {
+            DEBUG_MSG_P(PSTR("[SCH] Received MQTT prices package\n"));
+
+            // Parse response
+            DynamicJsonBuffer jsonBuffer;
+            JsonArray& prices = jsonBuffer.parseArray((char *) payload);
+
+            if (!prices.success()) {
+                DEBUG_MSG_P(PSTR("[SCH] Error parsing MQTT data\n"));
+                return;
+            }
+
+            int index = 0;
+            for (auto& price : prices) {
+                setSetting("schPrices", index++, atoi(price));
+            }
+
         }
     }
 

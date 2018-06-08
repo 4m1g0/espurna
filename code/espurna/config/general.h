@@ -660,6 +660,7 @@
 #define MQTT_TOPIC_ACTION           "action"
 #define MQTT_TOPIC_RELAY            "relay"
 #define MQTT_TOPIC_SCHEDULER        "scheduler"
+#define MQTT_TOPIC_PRICES           "prices"
 #define MQTT_TOPIC_LED              "led"
 #define MQTT_TOPIC_BUTTON           "button"
 #define MQTT_TOPIC_IP               "ip"
